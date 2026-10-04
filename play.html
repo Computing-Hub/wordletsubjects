@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#22313A">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Key Terms">
+<title>Key Terms | Le Rocquier School</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EBEFEC; --grid:rgba(34,49,58,.07); --ink:#22313A; --ink-soft:#56656D;
+  --line:#B6C1C3; --panel:#F7F9F7;
+  --correct:#2E7D4F; --present:#BF8A12; --absent:#78838A; --on-tile:#FFFFFF;
+  --key:#D3DADA; --wrong:#B23A2E;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#141B1F; --grid:rgba(227,233,234,.05); --ink:#E3E9EA; --ink-soft:#9DABB1;
+    --line:#3A474D; --panel:#1C2529;
+    --correct:#3A9A62; --present:#C99A2E; --absent:#4A555B; --key:#2C373C; --wrong:#E06A5C;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#141B1F; --grid:rgba(227,233,234,.05); --ink:#E3E9EA; --ink-soft:#9DABB1;
+  --line:#3A474D; --panel:#1C2529;
+  --correct:#3A9A62; --present:#C99A2E; --absent:#4A555B; --key:#2C373C; --wrong:#E06A5C;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none !important}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0;height:100%;color:var(--ink);background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:20px 20px;
+  font-family:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:17px;line-height:1.45;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:3px solid var(--present);outline-offset:2px}
+.app{height:100%;max-width:560px;margin:0 auto;display:flex;flex-direction:column;padding:0 14px}
+.screen{display:none;flex:1;min-height:0;flex-direction:column}
+.screen.on{display:flex}
+.stamp{font-family:"Saira Stencil One","Arial Black",sans-serif;line-height:.95;margin:0;letter-spacing:.02em}
+.home{color:var(--ink-soft);font-weight:600}
+.primary{background:var(--ink);color:var(--paper);border:0;border-radius:6px;padding:15px 22px;font-weight:700;font-size:18px;width:100%}
+.primary:disabled{opacity:.4;cursor:default}
+.secondary{background:transparent;border:2px solid var(--ink);border-radius:6px;padding:13px 22px;font-weight:700;font-size:17px;width:100%}
+
+/* Setup */
+#setup{overflow-y:auto;gap:18px;padding:16px 2px 20px}
+#setup .stamp{font-size:clamp(40px,12vw,60px)}
+.dept{margin:-10px 0 0;color:var(--ink-soft);font-weight:500}
+fieldset{border:0;margin:0;padding:0;display:grid;gap:8px}
+legend{font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);padding:0;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:2px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 14px;font-weight:600;font-size:15px}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.avail{margin:0;color:var(--ink-soft);font-size:15px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0;padding:0;list-style:none;font-size:14px;color:var(--ink-soft)}
+.legend li{display:flex;align-items:center;gap:6px}
+.mini{width:16px;height:16px;border-radius:3px;display:inline-block}
+
+/* Game */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0 8px}
+.top h2{margin:0;font-size:15px;font-weight:600;color:var(--ink-soft);line-height:1.25}
+.count{font-family:"Saira Stencil One",sans-serif;font-size:22px;flex:none}
+.bar{display:flex;gap:4px;margin-bottom:10px}
+.bar span{flex:1;height:6px;border-radius:3px;background:var(--line)}
+.bar span.done{background:var(--ink)}
+.bar span.now{background:var(--present)}
+.clue{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--ink);border-radius:6px;padding:10px 14px;margin-bottom:10px}
+.clue img{display:block;width:100%;max-height:min(150px,22vh);object-fit:contain;background:#fff;border-radius:4px;margin-bottom:8px}
+.clue p{margin:0;font-size:18px;font-weight:500}
+.clue small{display:block;color:var(--ink-soft);font-size:14px;margin-top:4px}
+.mid{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;gap:5px;padding-bottom:6px}
+.row{--ts:50px;display:flex;flex-direction:column;align-items:center;gap:4px;width:100%}
+.row.stacked{--ts:32px;padding-bottom:8px;border-bottom:1px dashed var(--line)}
+.row.stacked:last-child{border-bottom:0}
+.line{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:4px;width:min(100%,calc(var(--n) * var(--ts)))}
+.tile{aspect-ratio:1;display:grid;place-items:center;border:2px solid var(--line);border-radius:4px;
+  font-family:"Saira Stencil One","Arial Black",sans-serif;font-size:min(calc(var(--ts) * .48),calc((100vw - 40px) / var(--n) * .55));
+  background:var(--panel);text-transform:uppercase}
+.tile.gap{margin-right:8px}
+.tile.filled{border-color:var(--ink-soft)}
+.tile.correct{background:var(--correct);border-color:var(--correct);color:var(--on-tile)}
+.tile.present{background:var(--present);border-color:var(--present);color:var(--on-tile)}
+.tile.absent{background:var(--absent);border-color:var(--absent);color:var(--on-tile)}
+.tile.flip{animation:flip .42s ease both}
+@keyframes flip{0%{transform:rotateX(0)}50%{transform:rotateX(90deg)}100%{transform:rotateX(0)}}
+.row.shake{animation:shake .35s}
+@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.msg{min-height:24px;text-align:center;font-weight:600;margin:2px 0}
+.reveal-btn{background:none;border:0;color:var(--ink-soft);text-decoration:underline;font-size:15px;padding:2px 8px;align-self:center}
+.kb{display:grid;gap:6px;padding:6px 0 10px}
+.kb-row{display:flex;gap:5px;justify-content:center}
+.key{flex:1;max-width:44px;height:50px;border:0;border-radius:5px;background:var(--key);font-weight:700;font-size:17px;padding:0}
+.key.wide{flex:1.6;max-width:70px;font-size:14px}
+.key.correct{background:var(--correct);color:var(--on-tile)}
+.key.present{background:var(--present);color:var(--on-tile)}
+.key.absent{background:var(--absent);color:var(--on-tile)}
+.follow{display:none;flex-direction:column;gap:10px;padding:6px 0 14px}
+.follow.on{display:flex}
+.follow h3{margin:0;font-size:18px;line-height:1.35}
+.opt{text-align:left;background:var(--panel);border:2px solid var(--line);border-radius:6px;padding:11px 14px;font-size:16px;font-weight:500}
+.opt.right{border-color:var(--correct);background:color-mix(in srgb,var(--correct) 16%,var(--panel))}
+.opt.wrong{border-color:var(--wrong);background:color-mix(in srgb,var(--wrong) 14%,var(--panel))}
+.opt:disabled{cursor:default}
+.explain{margin:0;color:var(--ink-soft);font-size:15px}
+
+/* Results */
+#results{overflow-y:auto;gap:16px;padding:20px 0}
+.scores{display:flex;gap:12px}
+.score{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px}
+.score b{display:block;font-family:"Saira Stencil One",sans-serif;font-size:36px;line-height:1}
+.score span{color:var(--ink-soft);font-size:15px}
+.list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.list li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 2px;border-bottom:1px solid var(--line)}
+.list .term{font-weight:600;text-transform:uppercase}
+.marks{display:flex;gap:6px;font-size:13px}
+.mark{padding:2px 8px;border-radius:10px;border:1px solid var(--line)}
+.mark.ok{background:var(--correct);border-color:var(--correct);color:var(--on-tile)}
+.mark.no{color:var(--wrong);border-color:var(--wrong)}
+.btns{display:grid;gap:10px}
+@media (prefers-reduced-motion:reduce){.tile.flip,.row.shake{animation:none}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <section class="screen on" id="setup">
+    <a class="home" href="./">Home</a>
+    <h1 class="stamp" id="subjTitle">Key Terms</h1>
+    <p class="dept" id="subjDept"></p>
+    <fieldset><legend>Subject</legend><div class="chips" id="subjects"></div></fieldset>
+    <fieldset><legend>Topic</legend><div class="chips" id="topics"></div></fieldset>
+    <fieldset id="tierBox"><legend>Tier</legend><div class="chips" id="tiers"></div></fieldset>
+    <fieldset id="typeBox"><legend>Question type</legend><div class="chips" id="types"></div></fieldset>
+    <p class="avail" id="avail"></p>
+    <button class="primary" id="startBtn">Start set</button>
+    <ul class="legend">
+      <li><span class="mini" style="background:var(--correct)"></span>Right place</li>
+      <li><span class="mini" style="background:var(--present)"></span>Wrong place</li>
+      <li><span class="mini" style="background:var(--absent)"></span>Not in word</li>
+    </ul>
+  </section>
+
+  <section class="screen" id="game">
+    <div class="top"><h2 id="setTitle"></h2><span class="count" id="count"></span></div>
+    <div class="bar" id="bar"></div>
+    <div class="clue"><img id="clueImg" alt="" hidden><p id="clue"></p><small id="meta"></small></div>
+    <div class="mid" id="board"></div>
+    <div class="msg" id="msg" role="status" aria-live="polite"></div>
+    <button class="reveal-btn" id="revealBtn">Reveal the word</button>
+    <div class="kb" id="kb"></div>
+    <div class="follow" id="follow">
+      <h3 id="fq"></h3>
+      <div id="fopts" style="display:grid;gap:8px"></div>
+      <p class="explain" id="fexp"></p>
+      <button class="primary" id="nextBtn" hidden>Next word</button>
+    </div>
+  </section>
+
+  <section class="screen" id="results">
+    <h1 class="stamp" style="font-size:52px">Set done</h1>
+    <div class="scores">
+      <div class="score"><b id="sWords"></b><span>words solved</span></div>
+      <div class="score"><b id="sFollow"></b><span>follow-ups right</span></div>
+    </div>
+    <ul class="list" id="list"></ul>
+    <div class="btns">
+      <button class="primary" id="retryBtn">Retry missed terms</button>
+      <button class="secondary" id="againBtn">New set, same choices</button>
+      <button class="secondary" id="changeBtn">Change subject or topic</button>
+    </div>
+  </section>
+</div>
+
+<script src="banks/banks.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const shuffle = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const BANKS = window.BANKS || [];
+const SET_SIZE = 10;
+
+/* ---------- Setup ---------- */
+let sel = { subject: BANKS[0] && BANKS[0].id, topic: "All topics", tier: "H", type: "all" };
+try { Object.assign(sel, JSON.parse(localStorage.getItem("kt-sel") || "{}")); } catch(e){}
+const param = new URLSearchParams(location.search).get("subject");
+if (param && BANKS.some(b=>b.id===param)) { if (sel.subject !== param) sel.topic = "All topics"; sel.subject = param; }
+if (!BANKS.some(b=>b.id===sel.subject) && BANKS[0]) sel.subject = BANKS[0].id;
+
+const bank = () => BANKS.find(b=>b.id===sel.subject);
+function pool(){
+  const b = bank(); if (!b) return [];
+  return b.items.filter(it =>
+    (sel.topic === "All topics" || it.topic === sel.topic) &&
+    (sel.tier === "H" || it.tier === "F") &&
+    (sel.type === "all" || (sel.type === "pictures") === !!it.image));
+}
+function chips(el, opts, current, onPick){
+  el.innerHTML = "";
+  opts.forEach(([val,label])=>{
+    const b = document.createElement("button"); b.className="chip"; b.textContent = label;
+    b.setAttribute("aria-pressed", String(val === current));
+    b.onclick = ()=>{ onPick(val); renderSetup(); };
+    el.appendChild(b);
+  });
+}
+function renderSetup(){
+  const b = bank();
+  if (!b){ $("avail").textContent = "No word banks found."; $("startBtn").disabled = true; return; }
+  $("subjTitle").textContent = b.subject;
+  $("subjDept").textContent = b.department;
+  chips($("subjects"), BANKS.map(x=>[x.id,x.subject]), sel.subject, v=>{ sel.subject=v; sel.topic="All topics"; sel.type="all"; });
+  const topics = [...new Set(b.items.map(i=>i.topic))];
+  if (sel.topic !== "All topics" && !topics.includes(sel.topic)) sel.topic = "All topics";
+  chips($("topics"), [["All topics","All topics"], ...topics.map(t=>[t,t])], sel.topic, v=>{ sel.topic=v; });
+  const hasH = b.items.some(i=>i.tier==="H");
+  $("tierBox").hidden = !hasH;
+  if (!hasH) sel.tier = "H";
+  chips($("tiers"), [["F","Foundation"],["H","Higher"]], sel.tier, v=>{ sel.tier=v; });
+  const hasPics = b.items.some(i=>i.image), hasWords = b.items.some(i=>!i.image);
+  $("typeBox").hidden = !(hasPics && hasWords);
+  if ($("typeBox").hidden) sel.type = "all";
+  chips($("types"), [["all","Mixed"],["words","Clues"],["pictures","Pictures"]], sel.type, v=>{ sel.type=v; });
+  const n = pool().length;
+  $("avail").textContent = n === 0 ? "No terms match these choices." :
+    `${n} term${n===1?"":"s"} available. A set has ${Math.min(n,SET_SIZE)}.`;
+  $("startBtn").disabled = n === 0;
+  try { localStorage.setItem("kt-sel", JSON.stringify(sel)); } catch(e){}
+}
+
+/* ---------- Game ---------- */
+let queue=[], idx=0, results=[], cur=null, keyState={}, locked=false, setTitle="";
+
+function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id)); window.scrollTo(0,0); }
+
+function startSet(items, title){
+  queue = items; idx = 0; results = []; setTitle = title;
+  $("setTitle").textContent = title; show("game"); loadItem();
+}
+function newSet(){
+  const b = bank();
+  const parts = [b.subject, sel.topic === "All topics" ? null : sel.topic, sel.type === "pictures" ? "Pictures" : null].filter(Boolean);
+  startSet(shuffle(pool()).slice(0, SET_SIZE), parts.join(": "));
+}
+
+function loadItem(){
+  const item = queue[idx];
+  const nfd = item.term.normalize("NFD");
+  const accents = /[\u0300-\u036f]/.test(nfd);
+  const upper = nfd.replace(/[\u0300-\u036f]/g,"").toUpperCase();
+  const letters = upper.replace(/[^A-Z]/g,"");
+  const gaps = new Set(); let pos = 0;
+  for (const ch of upper){ if (/[A-Z]/.test(ch)) pos++; else if (pos>0) gaps.add(pos-1); }
+  cur = { item, upper, accents, letters, gaps, n:letters.length, max: letters.length<=6 ? 5 : 6, guesses:[], input:"", over:false, solved:false };
+  keyState = {}; locked = false;
+  $("count").textContent = `${idx+1} / ${queue.length}`;
+  $("bar").innerHTML = queue.map((_,i)=>`<span class="${i<idx?'done':i===idx?'now':''}"></span>`).join("");
+  const img = $("clueImg");
+  if (item.image){ img.src = item.image; img.alt = "Diagram for this question"; img.hidden = false; }
+  else { img.hidden = true; img.removeAttribute("src"); }
+  $("clue").textContent = item.clue;
+  const words = upper.split(/[^A-Z]+/).filter(Boolean).length;
+  $("meta").textContent = `${cur.n} letters${words>1?`, ${words} words`:""}, ${cur.max} guesses${accents?". No accents needed":""}`;
+  $("msg").textContent = "";
+  $("follow").classList.remove("on");
+  $("kb").style.display = ""; $("revealBtn").style.display = "";
+  buildBoard(); buildKeyboard();
+}
+
+const tilesOf = row => [...row.querySelectorAll(".tile")];
+function buildBoard(){
+  const b = $("board"); b.innerHTML = "";
+  const words = cur.upper.split(/[^A-Z]+/).filter(Boolean).map(w=>w.length);
+  const stacked = cur.n > 12 && words.length > 1;
+  const lines = stacked ? words : [cur.n];
+  for (let r=0;r<cur.max;r++){
+    const row = document.createElement("div"); row.className = "row" + (stacked ? " stacked" : "");
+    let c = 0;
+    lines.forEach(len=>{
+      const line = document.createElement("div"); line.className="line"; line.style.setProperty("--n",len);
+      for (let k=0;k<len;k++,c++){ const t=document.createElement("div"); t.className="tile"+(!stacked && cur.gaps.has(c)?" gap":""); line.appendChild(t); }
+      row.appendChild(line);
+    });
+    b.appendChild(row);
+  }
+}
+function paintInput(){
+  const row = $("board").children[cur.guesses.length]; if (!row) return;
+  tilesOf(row).forEach((t,i)=>{ t.textContent = cur.input[i]||""; t.classList.toggle("filled",!!cur.input[i]); });
+  row.scrollIntoView({block:"nearest"});
+}
+function evaluate(guess, target){
+  const res = Array(target.length).fill("absent"), counts = {};
+  for (let i=0;i<target.length;i++){ if (guess[i]===target[i]) res[i]="correct"; else counts[target[i]]=(counts[target[i]]||0)+1; }
+  for (let i=0;i<target.length;i++){ if (res[i]!=="correct" && counts[guess[i]]>0){ res[i]="present"; counts[guess[i]]--; } }
+  return res;
+}
+const RANK = {absent:1,present:2,correct:3};
+function submit(){
+  if (cur.over || locked) return;
+  const row = $("board").children[cur.guesses.length];
+  if (cur.input.length < cur.n){
+    row.classList.remove("shake"); void row.offsetWidth; row.classList.add("shake");
+    $("msg").textContent = `Fill all ${cur.n} letters`; return;
+  }
+  const guess = cur.input, res = evaluate(guess, cur.letters);
+  tilesOf(row).forEach((t,i)=>{ t.style.animationDelay = (i*50)+"ms"; t.classList.add("flip", res[i]); });
+  [...guess].forEach((ch,i)=>{ if (!keyState[ch] || RANK[res[i]]>RANK[keyState[ch]]) keyState[ch]=res[i]; });
+  cur.guesses.push(guess); cur.input = ""; $("msg").textContent = "";
+  locked = true;
+  setTimeout(()=>{
+    locked = false; buildKeyboard();
+    if (guess === cur.letters) finishWord(true);
+    else if (cur.guesses.length >= cur.max) finishWord(false);
+  }, cur.n*50 + 420);
+}
+function finishWord(solved){
+  cur.over = true; cur.solved = solved;
+  const written = cur.item.term.toUpperCase();
+  $("msg").textContent = solved ? `Solved in ${cur.guesses.length}${cur.accents ? `. Written: ${written}` : ""}` : `The answer was ${written}`;
+  if (!solved && cur.guesses.length < cur.max){
+    const row = $("board").children[cur.guesses.length];
+    tilesOf(row).forEach((t,i)=>{ t.textContent = cur.letters[i]; t.classList.add("correct"); });
+  }
+  $("kb").style.display = "none"; $("revealBtn").style.display = "none";
+  showFollow();
+}
+const lastFU = new Map(); // term -> index of the follow-up used last time
+function pickFollowUp(it){
+  const list = it.followups, n = list.length;
+  let i = Math.floor(Math.random()*n);
+  if (n > 1 && lastFU.get(it.term) === i) i = (i + 1 + Math.floor(Math.random()*(n-1))) % n;
+  lastFU.set(it.term, i);
+  return list[i];
+}
+function showFollow(){
+  const fu = cur.fu = pickFollowUp(cur.item);
+  $("fq").textContent = fu.q; $("fexp").textContent = ""; $("nextBtn").hidden = true;
+  const box = $("fopts"); box.innerHTML = "";
+  shuffle(fu.options.map((_,i)=>i)).forEach(i=>{
+    const b = document.createElement("button"); b.className="opt"; b.textContent = fu.options[i];
+    b.dataset.i = i; b.onclick = ()=> answer(i, b);
+    box.appendChild(b);
+  });
+  $("follow").classList.add("on");
+  $("follow").scrollIntoView({behavior:"smooth",block:"end"});
+}
+function answer(i, btn){
+  const fu = cur.fu, ok = i === fu.answer;
+  [...$("fopts").children].forEach(b=>{ b.disabled = true; if (+b.dataset.i === fu.answer) b.classList.add("right"); });
+  if (!ok) btn.classList.add("wrong");
+  $("fexp").textContent = (ok ? "Correct. " : "Not quite. ") + fu.explain;
+  results.push({ item:cur.item, solved:cur.solved, follow:ok });
+  const nb = $("nextBtn"); nb.hidden = false;
+  nb.textContent = idx === queue.length-1 ? "See results" : "Next word";
+  nb.focus();
+}
+function next(){ idx++; if (idx < queue.length) loadItem(); else showResults(); }
+
+function showResults(){
+  const w = results.filter(r=>r.solved).length, f = results.filter(r=>r.follow).length;
+  $("sWords").textContent = `${w}/${results.length}`; $("sFollow").textContent = `${f}/${results.length}`;
+  const list = $("list"); list.innerHTML = "";
+  results.forEach(r=>{
+    const li = document.createElement("li");
+    const t = document.createElement("span"); t.className="term"; t.textContent = r.item.term;
+    const m = document.createElement("span"); m.className="marks";
+    m.innerHTML = `<span class="mark ${r.solved?'ok':'no'}">word</span><span class="mark ${r.follow?'ok':'no'}">question</span>`;
+    li.append(t,m); list.appendChild(li);
+  });
+  const missed = results.filter(r=>!r.solved || !r.follow).map(r=>r.item);
+  const rb = $("retryBtn");
+  rb.hidden = missed.length === 0;
+  rb.textContent = `Retry missed terms (${missed.length})`;
+  rb.onclick = ()=> startSet(shuffle(missed), `Retry: ${missed.length} term${missed.length===1?"":"s"}`);
+  show("results");
+}
+
+function press(k){
+  if (!cur || cur.over || locked) return;
+  if (k === "ENTER") return submit();
+  if (k === "BACK"){ cur.input = cur.input.slice(0,-1); return paintInput(); }
+  if (/^[A-Z]$/.test(k) && cur.input.length < cur.n){ cur.input += k; paintInput(); }
+}
+function buildKeyboard(){
+  const kb = $("kb"); kb.innerHTML = "";
+  ["QWERTYUIOP","ASDFGHJKL","+ZXCVBNM-"].forEach(r=>{
+    const d = document.createElement("div"); d.className="kb-row";
+    for (const ch of r){
+      const b = document.createElement("button"); b.className="key";
+      if (ch==="+"){ b.textContent="Enter"; b.classList.add("wide"); b.onclick=()=>press("ENTER"); }
+      else if (ch==="-"){ b.textContent="⌫"; b.setAttribute("aria-label","Delete"); b.classList.add("wide"); b.onclick=()=>press("BACK"); }
+      else { b.textContent=ch; if (keyState[ch]) b.classList.add(keyState[ch]); b.onclick=()=>press(ch); }
+      d.appendChild(b);
+    }
+    kb.appendChild(d);
+  });
+}
+document.addEventListener("keydown", e=>{
+  if (!$("game").classList.contains("on") || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === "Enter" && cur && cur.over) return;
+  if (e.key === "Enter"){ e.preventDefault(); press("ENTER"); }
+  else if (e.key === "Backspace") press("BACK");
+  else if (/^[a-z]$/i.test(e.key)) press(e.key.toUpperCase());
+});
+
+$("startBtn").onclick = newSet;
+$("againBtn").onclick = newSet;
+$("changeBtn").onclick = ()=>{ renderSetup(); show("setup"); };
+$("nextBtn").onclick = next;
+$("revealBtn").onclick = ()=>{ if (cur && !cur.over && !locked) finishWord(false); };
+renderSetup();
+
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>

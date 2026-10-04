@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" font-family="Arial, sans-serif">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#C0392B"/></marker></defs>
+<rect width="320" height="200" fill="#FFFFFF"/>
+<path d="M120,130 L200,130 L215,164 Q219,175 208,175 L112,175 Q101,175 105,164 Z" fill="#CFE3EE"/><path d="M144,28 L176,28 M148,28 L148,70 L104,166 Q100,176 112,176 L208,176 Q220,176 216,166 L172,70 L172,28" stroke="#22313A" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+</svg>
