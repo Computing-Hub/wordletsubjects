@@ -1,6 +1,6 @@
 // The block between BUILD:START and BUILD:END is rewritten by build_banks.py.
 // BUILD:START
-const VERSION = "key-terms-33c1de985a";
+const VERSION = "key-terms-ad934bf9f2";
 const FILES = [
   "./",
   "./index.html",

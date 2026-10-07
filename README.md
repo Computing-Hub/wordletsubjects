@@ -6,32 +6,35 @@ Banks so far: exam command words (all subjects), English (language devices, lite
 
 ## Files
 - `index.html` – introduction page, lists subjects by department
-- `play.html` – the game (subject, topic, tier and question-type choices)
-- `banks/source/*.csv` – the word banks, one per subject. **Edit these.**
-- `banks/source/subjects.csv` – the list of subjects and their departments
-- `banks/banks.js` – generated from the CSVs. Don't edit by hand.
+- `play.html` – the game engine (subject, topic, tier and question-type choices)
+- `banks/terms.xlsx` – **all word banks, one tab per subject. Edit this.**
+- `banks/banks.js` – generated from the workbook. Don't edit by hand.
 - `images/` – diagrams for picture questions (SVG or PNG)
-- `build_banks.py` – checks the CSVs and builds `banks/banks.js`
+- `build_banks.py` – checks the workbook and builds `banks/banks.js`
 - `manifest.json`, `sw.js`, `icons/` – PWA files
 
-## Adding or changing terms
-1. Open the subject's CSV in `banks/source/` in Excel or Google Sheets.
-2. Add a row. Columns:
-   - `term` – the answer. Letters, spaces and hyphens only. Accents are allowed (árbol, être): students type the plain letters and the game shows the correct spelling afterwards. Ñ is typed as N.
-   - `clue` – the definition, or an instruction such as "Name this circuit symbol." for picture questions. Don't include the answer.
-   - `image` – leave blank, or a path such as `images/sym-diode.svg`
-   - `topic` – use the AQA topic name so it groups correctly
-   - `tier` – `F` (everyone) or `H` (Higher only)
-   - `question`, `correct_answer`, `wrong_1`, `wrong_2`, `wrong_3`, `explanation` – the follow-up. The game shuffles the options.
-   - **Extra follow-ups:** add another row with the same `term`, leave `clue`, `image`, `topic` and `tier` blank, and fill in the follow-up columns. Each time the term comes up, one of its follow-ups is picked at random (never the same one twice in a row). Keep a term's rows together so they're easy to find.
-3. In Excel, save as **CSV UTF-8**, so symbols like ₂, ° and → survive.
-4. Run `python build_banks.py`. It lists any problems and writes nothing until they're fixed.
-5. Commit and push.
+## Editing the word banks
+Open `banks/terms.xlsx`. The **How to** tab explains everything; in short:
 
-The build script also updates the version in `sw.js`, so installed copies pick up the new terms automatically.
+- **Each subject tab** has one row per term, plus grey rows below it for extra follow-up questions (same term, blank clue/image/topic/tier). One follow-up is picked at random each time the term appears.
+- **Columns:** term, clue, image, topic, tier, question, correct_answer, wrong_1, wrong_2, wrong_3, explanation, checked_by.
+- **Dropdowns** for tier, topic and image come from the **Lists** tab. Add a new topic there first.
+- **Red cells** mark something required that's missing.
+- **checked_by** is for the initials of the teacher who reviewed the row. The build reports how many terms are still unchecked.
+- **Accents** are fine in terms (árbol, être): students type plain letters and the game shows the correct spelling afterwards.
+
+Then build and publish:
+
+```
+pip install -r requirements.txt   # first time only
+python build_banks.py
+git add -A && git commit -m "Update word banks" && git push
+```
+
+The build lists any problems by tab and row number and writes nothing until they're fixed. It also updates the version in `sw.js`, so installed copies pick up the changes.
 
 ## Adding a subject
-Add a line to `subjects.csv` (id, subject name, heading for the home page such as "Department of Science"), create `<id>.csv` with the same columns, and run the build. The subject appears on the home page under its department.
+Add a row to the **Subjects** tab (id, subject, department heading), create a tab named exactly like the subject with the same column headings, and add a column for its topics in the **Lists** tab. Then run the build.
 
 ## Host on GitHub Pages
 Push everything to the repo root, then Settings → Pages → Deploy from a branch → `main` / root. The site appears at `https://<username>.github.io/<repo>/`.
