@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}New class{% endblock %}
+{% block wrapclass %}narrow{% endblock %}
+{% block body %}
+<p class="small"><a href="{{ url_for('classes.index') }}">← Classes</a></p>
+<h1>New class</h1>
+<p class="lead">You'll get one code per student, like <b>9B-K7R</b>. Codes start with the first word of the class name.</p>
+<form method="post" class="panel">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="field"><label for="name">Class name</label>
+    <input type="text" id="name" name="name" maxlength="80" placeholder="9B Science" required autofocus value="{{ request.form.name }}"></div>
+  <div class="grid2">
+    <div class="field"><label for="size">Number of students</label>
+      <input type="number" id="size" name="size" min="1" max="{{ max_codes }}" value="{{ request.form.size or 28 }}" required></div>
+    <div class="field"><label for="subject">Subject <span class="hint">Shown first on the dashboard. Students can still play any subject.</span></label>
+      <select id="subject" name="subject">
+        <option value="">Any subject</option>
+        {% for sid, name, dept in subjects %}<option value="{{ sid }}" {{ 'selected' if request.form.subject == sid }}>{{ name }}</option>{% endfor %}
+      </select></div>
+  </div>
+  <button class="btn primary" type="submit">Create class</button>
+</form>
+{% endblock %}

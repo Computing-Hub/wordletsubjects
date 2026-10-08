@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Your account{% endblock %}
+{% block wrapclass %}narrow{% endblock %}
+{% block body %}
+<h1>{{ 'Choose a password' if current_user.must_change_password else 'Your account' }}</h1>
+{% if current_user.must_change_password %}
+<p class="lead">You logged in with a temporary password. Choose your own before carrying on.</p>
+{% else %}
+<p class="lead">{{ current_user.display_name }} · username <b>{{ current_user.username }}</b>.
+  {% if '*' in current_user.subject_ids() %}You can add terms to every subject.
+  {% elif current_user.subject_ids() %}You can add terms to: {% for s in current_user.subject_ids()|sort %}{{ subject_name(s) }}{{ ', ' if not loop.last }}{% endfor %}.
+  {% else %}You can't add terms to any subject yet; ask the admin.{% endif %}</p>
+{% endif %}
+<form method="post" class="panel">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="field"><label for="c">Current password</label>
+    <input type="password" id="c" name="current" autocomplete="current-password" required></div>
+  <div class="field"><label for="n">New password <span class="hint">At least 10 characters. Three random words work well.</span></label>
+    <input type="password" id="n" name="new" autocomplete="new-password" minlength="10" required></div>
+  <div class="field"><label for="a">New password again</label>
+    <input type="password" id="a" name="again" autocomplete="new-password" minlength="10" required></div>
+  <button class="btn primary" type="submit">Change password</button>
+</form>
+{% endblock %}

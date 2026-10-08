@@ -130,6 +130,19 @@ legend{font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.0
 .mark.ok{background:var(--correct);border-color:var(--correct);color:var(--on-tile)}
 .mark.no{color:var(--wrong);border-color:var(--wrong)}
 .btns{display:grid;gap:10px}
+/* Class code */
+.classcode{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:grid;gap:8px}
+.classcode p{margin:0;font-size:15px}
+.classcode b{letter-spacing:.06em}
+.codeform{display:flex;gap:8px}
+.codeform input{flex:1;min-width:0;font:inherit;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  background:var(--paper);color:var(--ink);border:2px solid var(--line);border-radius:6px;padding:8px 10px}
+.codeform input:focus{border-color:var(--ink);outline:none}
+.codeform button{flex:none;width:auto;padding:8px 16px;font-size:16px}
+.linkbtn{background:none;border:0;padding:0;color:var(--ink-soft);text-decoration:underline;font-size:15px;font-weight:600}
+.codemsg{color:var(--ink-soft);font-size:14px}
+.codemsg.bad{color:var(--wrong)}
+.sent{margin:0;color:var(--ink-soft);font-size:15px}
 @media (prefers-reduced-motion:reduce){.tile.flip,.row.shake{animation:none}}
 </style>
 </head>
@@ -144,6 +157,15 @@ legend{font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.0
     <fieldset><legend>Topic</legend><div class="chips" id="topics"></div></fieldset>
     <fieldset id="tierBox"><legend>Tier</legend><div class="chips" id="tiers"></div></fieldset>
     <fieldset id="typeBox"><legend>Question type</legend><div class="chips" id="types"></div></fieldset>
+    <div class="classcode" id="classBox" hidden>
+      <p id="codeShow"></p>
+      <form class="codeform" id="codeForm" hidden>
+        <input id="codeInput" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="10"
+               placeholder="e.g. 9B-K7R" aria-label="Class code">
+        <button class="primary" type="submit">Save</button>
+      </form>
+      <span class="codemsg" id="codeMsg" role="status" aria-live="polite"></span>
+    </div>
     <p class="avail" id="avail"></p>
     <button class="primary" id="startBtn">Start set</button>
     <ul class="legend">
@@ -175,6 +197,7 @@ legend{font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.0
       <div class="score"><b id="sWords"></b><span>words solved</span></div>
       <div class="score"><b id="sFollow"></b><span>follow-ups right</span></div>
     </div>
+    <p class="sent" id="sent" role="status" aria-live="polite"></p>
     <ul class="list" id="list"></ul>
     <div class="btns">
       <button class="primary" id="retryBtn">Retry missed terms</button>
@@ -184,6 +207,7 @@ legend{font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.0
   </section>
 </div>
 
+<script src="config.js"></script>
 <script src="banks/banks.js"></script>
 <script>
 const $ = id => document.getElementById(id);
@@ -385,7 +409,126 @@ function showResults(){
   rb.textContent = `Retry missed terms (${missed.length})`;
   rb.onclick = ()=> startSet(shuffle(missed), `Retry: ${missed.length} term${missed.length===1?"":"s"}`);
   show("results");
+  sendSet();
 }
+
+/* ---------- Class code: optional, and only if the school has set resultsUrl in config.js ----------
+   Only the code, subject, topic and right/wrong per term are sent. No names. */
+const API = ((window.KT_CONFIG || {}).resultsUrl || "").replace(/\/+$/, "");
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} },
+  del(k){ try { localStorage.removeItem(k); } catch(e){} }
+};
+const normCode = c => c.toUpperCase().replace(/[^A-Z0-9-]/g, "");
+const codeShape = /^[A-Z0-9]{1,4}-[A-Z0-9]{3}$/;
+
+function renderCode(msg, bad){
+  if (!API) return;
+  $("classBox").hidden = false;
+  const me = store.get("kt-code", null), editing = !$("codeForm").hidden;
+  const show = $("codeShow"); show.textContent = "";
+  if (me && !editing){
+    show.append("Scores go to your teacher as ");
+    const b = document.createElement("b"); b.textContent = me.code; show.append(b);
+    if (me.class_name) show.append(` (${me.class_name})`);
+    show.append(". ");
+    const ch = document.createElement("button"); ch.className = "linkbtn"; ch.type = "button"; ch.textContent = "Change";
+    ch.onclick = ()=>{ $("codeForm").hidden = false; $("codeInput").value = me.code; renderCode(); $("codeInput").focus(); };
+    show.append(ch);
+  } else if (!editing){
+    show.append("Got a class code from your teacher? ");
+    const add = document.createElement("button"); add.className = "linkbtn"; add.type = "button"; add.textContent = "Add class code";
+    add.onclick = ()=>{ $("codeForm").hidden = false; renderCode(); $("codeInput").focus(); };
+    show.append(add);
+  } else {
+    show.textContent = "Type the code your teacher gave you. Leave it empty to stop sending scores.";
+  }
+  const m = $("codeMsg"); m.textContent = msg || ""; m.classList.toggle("bad", !!bad);
+}
+
+$("codeForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const code = normCode($("codeInput").value);
+  if (!code){
+    store.del("kt-code"); $("codeForm").hidden = true;
+    return renderCode("Class code removed. Scores stay on this device only.");
+  }
+  if (!codeShape.test(code)) return renderCode("Codes look like 9B-K7R: letters or numbers, a dash, then three characters.", true);
+  renderCode("Checking…");
+  try {
+    const r = await fetch(`${API}/api/code/${encodeURIComponent(code)}`);
+    const d = await r.json();
+    if (!r.ok || !d.ok) return renderCode(d.error || "That code isn't recognised. Check it with your teacher.", true);
+    store.set("kt-code", { code: d.code, class_name: d.class_name });
+    $("codeForm").hidden = true; renderCode("Saved. Your scores will be sent after each set.");
+  } catch(err){
+    // Offline: keep it; the server checks it again when the first set is sent.
+    store.set("kt-code", { code, class_name: "" });
+    $("codeForm").hidden = true; renderCode("Saved. It'll be checked next time you're online.");
+  }
+  flushOutbox();
+});
+
+function uid(){
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12);
+}
+
+function sendSet(){
+  const me = API && store.get("kt-code", null);
+  $("sent").textContent = "";
+  if (!me) return;
+  const out = store.get("kt-outbox", []);
+  out.push({
+    client_id: uid(), code: me.code, subject: sel.subject,
+    topic: setTitle.startsWith("Retry") ? "Retry" : sel.topic,
+    played_at: new Date().toISOString(),
+    items: results.map(r=>({ term: r.item.term, topic: r.item.topic, solved: r.solved, follow: r.follow }))
+  });
+  store.set("kt-outbox", out.slice(-50));  // keep the newest 50 if a phone is offline for weeks
+  $("sent").textContent = "Sending to your teacher…";
+  flushOutbox(true);
+}
+
+let flushing = false;
+async function flushOutbox(fromResults){
+  if (!API) return;
+  if (flushing){ if (fromResults) setTimeout(()=>flushOutbox(true), 1500); return; }
+  const out = store.get("kt-outbox", []);
+  if (!out.length) return;
+  flushing = true;
+  let more = false;
+  try {
+    const r = await fetch(`${API}/api/results`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ results: out.slice(0, 20) })
+    });
+    const d = await r.json();
+    const done = new Set(d.accepted || []), badCodes = new Set();
+    (d.rejected || []).forEach(x=>{
+      if (!x.retry) done.add(x.client_id);
+      if (x.reason === "code"){ const s = out.find(o=>o.client_id === x.client_id); if (s) badCodes.add(s.code); }
+    });
+    const left = store.get("kt-outbox", []).filter(x=>!done.has(x.client_id) && !badCodes.has(x.code));
+    store.set("kt-outbox", left);
+    more = r.ok && left.length > 0 && done.size > 0;
+    const me = store.get("kt-code", null);
+    if (me && badCodes.has(me.code)){
+      store.del("kt-code");
+      if (fromResults) $("sent").textContent = "Your class code isn't working any more, so this set wasn't sent. Ask your teacher.";
+      renderCode("Your class code was switched off. Ask your teacher for a new one.", true);
+    } else if (fromResults){
+      $("sent").textContent = "Sent to your teacher.";
+    }
+  } catch(err){
+    if (fromResults) $("sent").textContent = "Saved. It'll be sent to your teacher next time you're online.";
+  } finally {
+    flushing = false;
+  }
+  if (more) setTimeout(flushOutbox, 1000);  // more than one batch waiting
+}
+window.addEventListener("online", ()=>flushOutbox());
 
 function press(k){
   if (!cur || cur.over || locked) return;
@@ -421,6 +564,8 @@ $("changeBtn").onclick = ()=>{ renderSetup(); show("setup"); };
 $("nextBtn").onclick = next;
 $("revealBtn").onclick = ()=>{ if (cur && !cur.over && !locked) finishWord(false); };
 renderSetup();
+renderCode();
+flushOutbox();
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>

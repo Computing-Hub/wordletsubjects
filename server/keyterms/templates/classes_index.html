@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Classes{% endblock %}
+{% block body %}
+<div class="spread"><h1>Classes</h1><a class="btn primary" href="{{ url_for('classes.new') }}">New class</a></div>
+<p class="lead">Each student gets a random code instead of a name. Students type it into the game once, and their finished sets show up here.
+  You keep the list of which code belongs to whom; this site never sees names.</p>
+{% if classes %}
+<div class="cards">
+  {% for c in classes %}
+  <a class="card {{ 'off' if c.archived }}" href="{{ url_for('classes.dashboard', cid=c.id) }}">
+    <b>{{ c.name }}</b>
+    <span>{{ c.codes|length }} codes{% if c.subject_id %} · {{ subject_name(c.subject_id) }}{% endif %}
+      · {{ week_counts.get(c.id, 0) }} set{{ '' if week_counts.get(c.id, 0) == 1 else 's' }} this week
+      {% if c.archived %} · archived{% endif %}
+      {% if current_user.is_admin and c.teacher_id != current_user.id %} · {{ c.teacher.display_name }}{% endif %}</span>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<p class="muted">No classes yet. Create one to get a set of codes.</p>
+{% endif %}
+{% endblock %}

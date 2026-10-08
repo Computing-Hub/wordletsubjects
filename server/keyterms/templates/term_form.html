@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if entry_id else 'Add' }} · {{ subject_name(sid) }}{% endblock %}
+{% block body %}
+<p class="small"><a href="{{ url_for('terms.index') }}">← Back to drafts</a></p>
+<h1>{{ subject_name(sid) }}</h1>
+{% if not entry_id %}
+<div class="tabs" role="tablist">
+  <a href="{{ url_for('terms.new', subject=sid, mode='new') }}" class="{{ 'on' if mode == 'new' }}">New term</a>
+  <a href="{{ url_for('terms.new', subject=sid, mode='extra') }}" class="{{ 'on' if mode == 'extra' }}">More questions for an existing term</a>
+</div>
+{% endif %}
+<p class="lead">{% if mode == 'new' %}Students read the clue, guess the term letter by letter, then answer a follow-up question.
+  Each time the term comes up one of its questions is picked at random, so two or three work best.
+  {% else %}Add more follow-up questions to a term already in the game, so students don't see the same one every time.{% endif %}</p>
+
+{% if errors %}
+<div class="panel problems" role="alert"><b>Please fix {{ 'this' if errors|length == 1 else 'these' }}:</b>
+  <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div><br>
+{% elif warnings %}
+<div class="panel problems warn" role="alert"><b>Check {{ 'this' if warnings|length == 1 else 'these' }} before saving:</b>
+  <ul>{% for w in warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+  <p class="small muted" style="margin:6px 0 0">Change it below, or use <b>Save anyway</b> at the bottom.</p></div><br>
+{% endif %}
+
+<div class="layout">
+<form method="post" id="termForm" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="subject" value="{{ sid }}">
+  <input type="hidden" name="mode" value="{{ mode }}">
+
+  {% if mode == 'new' %}
+  <fieldset><legend>The term</legend>
+    <div class="field"><label for="term">Term <span class="hint">The word students guess. Letters, spaces and hyphens; accents are fine (students type plain letters).</span></label>
+      <input type="text" id="term" name="term" value="{{ data.term }}" maxlength="60" autocomplete="off" required></div>
+    <div class="field"><label for="clue">Clue <span class="hint">A definition or description that doesn't contain the term.</span></label>
+      <textarea id="clue" name="clue" maxlength="300" required>{{ data.clue }}</textarea></div>
+    <div class="grid2">
+      <div class="field"><label for="topic">Topic</label>
+        {% set known = data.topic in topics or not data.topic %}
+        <select id="topic" name="topic">
+          <option value="" {{ 'selected' if not data.topic }} disabled>Choose…</option>
+          {% for t in topics %}<option {{ 'selected' if t == data.topic }}>{{ t }}</option>{% endfor %}
+          <option value="__new__" {{ 'selected' if not known }}>New topic…</option>
+        </select>
+        <input type="text" id="new_topic" name="new_topic" value="{{ '' if known else data.topic }}" maxlength="80"
+               placeholder="Name of the new topic" style="margin-top:6px" {{ 'hidden' if known }}></div>
+      <div class="field"><span style="display:block;font-weight:600;margin-bottom:4px" id="tierLabel">Tier</span>
+        <div class="choice" role="radiogroup" aria-labelledby="tierLabel">
+          <label><input type="radio" name="tier" value="F" {{ 'checked' if data.tier != 'H' }}> Foundation</label>
+          <label><input type="radio" name="tier" value="H" {{ 'checked' if data.tier == 'H' }}> Higher</label>
+        </div>
+        <span class="hint" style="margin-top:6px">Foundation terms are shown to everyone; Higher only when students pick Higher.</span></div>
+    </div>
+  </fieldset>
+  {% else %}
+  <fieldset><legend>The term</legend>
+    <div class="field"><label for="term">Term</label>
+      {% if entry_id %}
+      <input type="text" id="term" name="term" value="{{ data.term }}" readonly>
+      {% else %}
+      <select id="term" name="term" required>
+        <option value="" {{ 'selected' if not data.term }} disabled>Choose a term…</option>
+        {% for t in existing_terms %}<option {{ 'selected' if t == data.term }}>{{ t }}</option>{% endfor %}
+      </select>
+      {% endif %}</div>
+  </fieldset>
+  {% endif %}
+
+  {% for n in range(1, max_followups + 1) %}
+  {% set fu = data.followups[n-1] if data.followups|length >= n else {} %}
+  <fieldset class="fu" data-n="{{ n }}" {{ 'hidden' if n > 1 and not fu.get('question') and not fu.get('correct_answer') }}>
+    <legend>Follow-up question {{ n }}{% if n > 1 %} <span class="muted small">(optional)</span>{% endif %}</legend>
+    <div class="field"><label for="question_{{ n }}">Question</label>
+      <textarea id="question_{{ n }}" name="question_{{ n }}" maxlength="300">{{ fu.get('question','') }}</textarea></div>
+    <div class="answers">
+      <div class="field"><label for="correct_answer_{{ n }}">Correct answer</label>
+        <input type="text" id="correct_answer_{{ n }}" name="correct_answer_{{ n }}" value="{{ fu.get('correct_answer','') }}" maxlength="200"></div>
+      {% for w in (1, 2, 3) %}
+      <div class="field"><label for="wrong_{{ w }}_{{ n }}">Wrong answer {{ w }}{% if w == 1 %} <span class="hint">Make wrong answers believable: common mistakes work best. Answers are shuffled in the game.</span>{% endif %}</label>
+        <input type="text" id="wrong_{{ w }}_{{ n }}" name="wrong_{{ w }}_{{ n }}" value="{{ fu.get('wrong_' ~ w,'') }}" maxlength="200"></div>
+      {% endfor %}
+    </div>
+    <div class="field"><label for="explanation_{{ n }}">Explanation <span class="hint">One line shown after answering, right or wrong.</span></label>
+      <textarea id="explanation_{{ n }}" name="explanation_{{ n }}" maxlength="400">{{ fu.get('explanation','') }}</textarea></div>
+    {% if n > 1 %}<button type="button" class="btn link removeFu">Remove this question</button>{% endif %}
+  </fieldset>
+  {% endfor %}
+  <p><button type="button" class="btn small" id="addFu">+ Add another question</button></p>
+
+  {% if mode == 'new' %}
+  <div class="field"><label for="notes">Note for the reviewer <span class="hint">Optional, e.g. where this comes up in the spec. Not shown to students.</span></label>
+    <textarea id="notes" name="notes" maxlength="500">{{ data.notes }}</textarea></div>
+  {% endif %}
+
+  <div class="row">
+    {% if warnings and not errors %}<input type="hidden" name="confirm" value="1">
+      <button class="btn primary" type="submit" name="then" value="list">Save anyway</button>
+    {% else %}
+      <button class="btn primary" type="submit" name="then" value="list">Save to drafts</button>
+      {% if not entry_id and mode == 'new' %}<button class="btn" type="submit" name="then" value="another">Save and add another</button>{% endif %}
+    {% endif %}
+    <a class="btn link" href="{{ url_for('terms.index') }}">Cancel</a>
+  </div>
+</form>
+
+<aside class="preview panel" aria-label="Preview">
+  <h2 style="margin-top:0">Preview</h2>
+  {% if mode == 'new' %}
+  <div class="pv-clue"><span id="pvClue" class="muted">The clue appears here.</span></div>
+  <div class="pv-tiles" id="pvTiles" aria-hidden="true"></div>
+  <p class="small muted" id="pvMeta" style="margin:0 0 10px"></p>
+  {% endif %}
+  <b id="pvQ" class="small">The follow-up question appears here.</b>
+  <div class="pv-opts" id="pvOpts"></div>
+  <p class="small muted" id="pvExp" style="margin:8px 0 0"></p>
+</aside>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='term-form.js') }}"></script>{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+{% block wrapclass %}narrow{% endblock %}
+{% block body %}
+<h1>Log in</h1>
+<p class="lead">For staff adding terms to Key Terms and checking class progress. Students don't need an account.</p>
+<form method="post" class="panel" autocomplete="on">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="field"><label for="u">Username</label>
+    <input type="text" id="u" name="username" value="{{ username }}" autocapitalize="none" autocomplete="username" required autofocus></div>
+  <div class="field"><label for="p">Password</label>
+    <input type="password" id="p" name="password" autocomplete="current-password" required></div>
+  <div class="field checks"><label><input type="checkbox" name="remember" value="1"> Keep me logged in on this computer</label></div>
+  <button class="btn primary" type="submit">Log in</button>
+</form>
+<p class="muted small">No account? Ask the Key Terms admin in your school.</p>
+{% endblock %}

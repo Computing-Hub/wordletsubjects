@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{% block title %}Key Terms{% endblock %} | Key Terms for teachers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="wrap {% block wrapclass %}{% endblock %}">
+  <header class="top">
+    <a class="brand" href="{{ url_for('auth.home') }}">
+      <span class="tiles" aria-hidden="true"><span class="c">K</span><span class="p">E</span><span>Y</span></span>
+      <span><b>Key Terms</b> <small>for teachers · {{ school_name }}</small></span>
+    </a>
+    {% if current_user.is_authenticated and not current_user.must_change_password %}
+    <nav aria-label="Main">
+      {% set ep = request.endpoint or '' %}
+      <a href="{{ url_for('terms.index') }}" class="{{ 'on' if ep.startswith('terms.') }}">Add terms</a>
+      <a href="{{ url_for('classes.index') }}" class="{{ 'on' if ep.startswith('classes.') }}">Classes</a>
+      {% if current_user.is_admin %}<a href="{{ url_for('admin.index') }}" class="{{ 'on' if ep.startswith('admin.') }}">Admin</a>{% endif %}
+      <a href="{{ url_for('auth.account') }}" class="{{ 'on' if ep == 'auth.account' }}">{{ current_user.display_name }}</a>
+      <form class="inline" method="post" action="{{ url_for('auth.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Log out</button>
+      </form>
+    </nav>
+    {% endif %}
+  </header>
+  {% for cat, msg in get_flashed_messages(with_categories=true) %}
+    <div class="flash {{ cat }}" role="status">{{ msg }}</div>
+  {% endfor %}
+  {% block body %}{% endblock %}
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>

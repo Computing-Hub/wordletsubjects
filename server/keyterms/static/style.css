@@ -1,0 +1,175 @@
+/* Key Terms teacher site. Same look as the student game. */
+:root{
+  --paper:#EBEFEC; --grid:rgba(34,49,58,.07); --ink:#22313A; --ink-soft:#56656D;
+  --line:#B6C1C3; --panel:#F7F9F7; --correct:#2E7D4F; --present:#BF8A12; --absent:#78838A;
+  --wrong:#B23A2E; --on-tile:#FFFFFF;
+  --hi:#2E7D4F; --mid:#BF8A12; --lo:#B23A2E;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#141B1F; --grid:rgba(227,233,234,.05); --ink:#E3E9EA; --ink-soft:#9DABB1;
+    --line:#3A474D; --panel:#1C2529; --correct:#3A9A62; --present:#C99A2E; --absent:#4A555B; --wrong:#E06A5C;
+    --hi:#3A9A62; --mid:#C99A2E; --lo:#D0584A;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#141B1F; --grid:rgba(227,233,234,.05); --ink:#E3E9EA; --ink-soft:#9DABB1;
+  --line:#3A474D; --panel:#1C2529; --correct:#3A9A62; --present:#C99A2E; --absent:#4A555B; --wrong:#E06A5C;
+  --hi:#3A9A62; --mid:#C99A2E; --lo:#D0584A;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none !important}
+body{
+  margin:0;color:var(--ink);background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:20px 20px;
+  font-family:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:17px;line-height:1.5;
+}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--present);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px 48px}
+.narrow{max-width:640px}
+
+/* Header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:14px 0;border-bottom:1px solid var(--line);margin-bottom:24px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.brand .tiles{display:flex;gap:3px}
+.brand .tiles span{width:22px;height:22px;border-radius:3px;display:grid;place-items:center;color:var(--on-tile);
+  font-family:"Saira Stencil One",sans-serif;font-size:13px;background:var(--absent)}
+.brand .tiles .c{background:var(--correct)} .brand .tiles .p{background:var(--present)}
+.brand b{font-weight:700}
+.brand small{color:var(--ink-soft);font-weight:500}
+nav{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+nav a,nav button{text-decoration:none;font-weight:600;font-size:15px;padding:6px 10px;border-radius:6px;
+  background:none;border:0;cursor:pointer;color:var(--ink-soft)}
+nav a:hover,nav button:hover{color:var(--ink);background:var(--panel)}
+nav a.on{color:var(--ink);background:var(--panel);box-shadow:inset 0 -2px 0 var(--ink)}
+
+h1{font-family:"Saira Stencil One","Arial Black",sans-serif;font-weight:400;font-size:clamp(34px,6vw,48px);
+  line-height:1;margin:0 0 6px;letter-spacing:.02em}
+h2{font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin:28px 0 10px}
+h3{margin:0;font-size:18px}
+.lead{color:var(--ink-soft);margin:0 0 20px;max-width:62ch}
+.muted{color:var(--ink-soft)}
+.small{font-size:14px}
+
+/* Panels and lists */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px}
+.stack{display:grid;gap:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.spread{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.card{display:block;text-decoration:none;background:var(--panel);border:2px solid var(--line);border-left:6px solid var(--ink);
+  border-radius:6px;padding:12px 14px}
+.card:hover{border-color:var(--ink)}
+.card b{display:block;font-size:17px}
+.card span{color:var(--ink-soft);font-size:14px}
+.entry{border-left:5px solid var(--ink)}
+.entry.extra{border-left-color:var(--present)}
+.entry ol{margin:8px 0 0;padding-left:20px;font-size:15px}
+.entry .ans{color:var(--correct);font-weight:600}
+.tag{display:inline-block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  padding:2px 8px;border-radius:10px;border:1px solid var(--line);color:var(--ink-soft);vertical-align:middle}
+.tag.open{border-color:var(--present);color:var(--present)}
+.tag.merged{background:var(--correct);border-color:var(--correct);color:var(--on-tile)}
+.tag.closed{border-color:var(--wrong);color:var(--wrong)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;cursor:pointer;
+  border:2px solid var(--ink);background:transparent;border-radius:6px;padding:8px 16px;font-weight:700;font-size:16px}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn.small{padding:4px 10px;font-size:14px;border-width:1.5px}
+.btn.danger{border-color:var(--wrong);color:var(--wrong)}
+.btn.link{border:0;padding:4px 6px;text-decoration:underline;font-weight:600;color:var(--ink-soft)}
+.btn:disabled{opacity:.45;cursor:default}
+form.inline{display:inline}
+
+/* Forms */
+label{display:block;font-weight:600;margin-bottom:4px}
+.hint{display:block;font-weight:400;color:var(--ink-soft);font-size:14px;margin-top:-2px;margin-bottom:6px}
+input[type=text],input[type=password],input[type=number],select,textarea{
+  width:100%;background:var(--panel);border:2px solid var(--line);border-radius:6px;padding:8px 10px}
+input:focus,select:focus,textarea:focus{border-color:var(--ink);outline:none}
+textarea{min-height:64px;resize:vertical}
+.field{margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:600px){.grid2{grid-template-columns:1fr}}
+.choice{display:flex;gap:8px;flex-wrap:wrap}
+.choice label{display:flex;align-items:center;gap:6px;font-weight:600;border:2px solid var(--line);border-radius:999px;
+  padding:5px 14px;cursor:pointer;background:var(--panel)}
+.choice input{accent-color:var(--ink)}
+.choice label:has(input:checked){border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 12px}
+.checks label{display:flex;gap:8px;align-items:center;font-weight:500}
+fieldset{border:1px solid var(--line);border-radius:8px;padding:14px;margin:0 0 14px}
+legend{font-weight:700;padding:0 6px}
+.tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.tabs a{text-decoration:none;font-weight:600;padding:7px 14px;border:2px solid var(--line);border-radius:999px;background:var(--panel)}
+.tabs a.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.answers .field:first-child input{border-left:6px solid var(--correct)}
+.answers .field:not(:first-child) input{border-left:6px solid var(--wrong)}
+
+/* Messages */
+.flash{border-radius:6px;padding:10px 14px;margin-bottom:12px;border:1px solid var(--line);background:var(--panel)}
+.flash.ok{border-left:6px solid var(--correct)}
+.flash.error{border-left:6px solid var(--wrong)}
+.flash.secret{border-left:6px solid var(--present);font-weight:600}
+.problems{border-left:6px solid var(--wrong)}
+.problems.warn{border-left-color:var(--present)}
+.problems ul{margin:6px 0 0;padding-left:20px}
+
+/* Term preview */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:24px;align-items:start}
+@media (max-width:860px){.layout{grid-template-columns:1fr}}
+.preview{position:sticky;top:12px}
+.pv-clue{background:var(--paper);border:1px solid var(--line);border-left:5px solid var(--ink);border-radius:6px;padding:8px 12px;margin:8px 0}
+.pv-tiles{display:flex;flex-wrap:wrap;gap:3px;margin:8px 0}
+.pv-tiles span{width:24px;height:24px;border:2px solid var(--line);border-radius:3px;display:grid;place-items:center;
+  font-family:"Saira Stencil One",sans-serif;font-size:13px;background:var(--panel)}
+.pv-tiles span.c{background:var(--correct);border-color:var(--correct);color:var(--on-tile)}
+.pv-tiles span.gap{margin-right:9px}
+.pv-opts{display:grid;gap:5px;margin-top:6px}
+.pv-opts div{border:2px solid var(--line);border-radius:6px;padding:5px 10px;font-size:15px;background:var(--panel)}
+.pv-opts div.right{border-color:var(--correct)}
+
+/* Dashboard */
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:8px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.stat b{display:block;font-family:"Saira Stencil One",sans-serif;font-size:32px;line-height:1.05;font-weight:400}
+.stat span{color:var(--ink-soft);font-size:14px}
+.weeks{display:flex;align-items:flex-end;gap:6px;height:120px;padding:8px 0 0;border-bottom:1px solid var(--line)}
+.weeks div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:3px}
+.weeks i{display:block;width:100%;max-width:44px;background:var(--ink);border-radius:3px 3px 0 0;min-height:2px}
+.weeks b{font-size:13px}
+.weeks-x{display:flex;gap:6px}
+.weeks-x span{flex:1;text-align:center;font-size:12px;color:var(--ink-soft)}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);font-weight:700;background:var(--panel)}
+thead th{position:sticky;top:0}
+td.num,th.num{text-align:center}
+.who{font-weight:700}
+.who small{display:block;font-weight:500;color:var(--ink-soft);font-size:12px;letter-spacing:.04em}
+.off{opacity:.5}
+.cell{display:inline-block;min-width:46px;text-align:center;border-radius:4px;padding:2px 6px;font-weight:700;color:var(--on-tile)}
+.cell.hi{background:var(--hi)} .cell.mid{background:var(--mid)} .cell.lo{background:var(--lo)}
+.cell sub{font-size:10px;font-weight:500;opacity:.85;vertical-align:baseline;margin-left:2px}
+.none{color:var(--line)}
+.bar{display:inline-block;height:8px;border-radius:4px;background:var(--lo);vertical-align:middle}
+.key{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;color:var(--ink-soft);margin:8px 0}
+.key span{display:flex;gap:6px;align-items:center}
+.key i{width:14px;height:14px;border-radius:3px;display:inline-block}
+
+/* Codes sheet */
+.codes td{font-size:17px}
+.codes .code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-weight:700;letter-spacing:.08em;font-size:19px}
+.codes .name{min-width:220px;border-bottom:1px solid var(--line)}
+@media print{
+  body{background:#fff;color:#000}
+  .top,.noprint,.flash{display:none !important}
+  .scroll{border:0}
+  .codes .name{border-bottom:1px solid #999}
+}
