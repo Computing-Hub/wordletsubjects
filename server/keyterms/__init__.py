@@ -40,12 +40,19 @@ def _sqlite_pragmas(dbapi_conn, _record):
 
 
 def create_app(test_config=None):
-    app = Flask(__name__, instance_path=str(SERVER_DIR / "instance"))
-    Path(app.instance_path).mkdir(parents=True, exist_ok=True)
     env = os.environ.get
+    # Where the database, backups and outbox live. On Railway this is the attached
+    # volume (Railway sets RAILWAY_VOLUME_MOUNT_PATH); without a volume the data
+    # would be wiped on every redeploy.
+    data_dir = env("DATA_DIR") or env("RAILWAY_VOLUME_MOUNT_PATH") or str(SERVER_DIR / "instance")
+    app = Flask(__name__, instance_path=data_dir)
+    Path(app.instance_path).mkdir(parents=True, exist_ok=True)
+    db_url = env("DATABASE_URL", f"sqlite:///{Path(data_dir) / 'keyterms.db'}")
+    if db_url.startswith("postgres://"):  # some hosts use the old prefix
+        db_url = "postgresql://" + db_url[len("postgres://"):]
     app.config.update(
         SECRET_KEY=env("SECRET_KEY", "dev-only-change-me"),
-        SQLALCHEMY_DATABASE_URI=env("DATABASE_URL", f"sqlite:///{Path(app.instance_path) / 'keyterms.db'}"),
+        SQLALCHEMY_DATABASE_URI=db_url,
         GITHUB_TOKEN=env("KEYTERMS_GITHUB_TOKEN", ""),
         GITHUB_REPO=env("GITHUB_REPO", "Computing-Hub/wordletsubjects"),
         GITHUB_BRANCH=env("GITHUB_BRANCH", "main"),
@@ -67,6 +74,11 @@ def create_app(test_config=None):
     if app.config["SECRET_KEY"] == "dev-only-change-me" and not (app.debug or app.testing):
         app.logger.warning("SECRET_KEY is not set. Set it before going live.")
 
+    if env("RAILWAY_ENVIRONMENT") or env("TRUST_PROXY"):
+        # Behind Railway's proxy: trust its headers so the site knows it's on HTTPS.
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
     db.init_app(app)
     csrf.init_app(app)
     login_manager.init_app(app)
@@ -77,6 +89,11 @@ def create_app(test_config=None):
     for bp in (auth.bp, terms.bp, classes.bp, admin.bp, api.bp):
         app.register_blueprint(bp)
     csrf.exempt(api.bp)  # the game can't send a CSRF token; codes and CORS protect it instead
+
+    @app.route("/healthz")
+    def healthz():
+        db.session.execute(db.text("SELECT 1"))
+        return {"ok": True}
 
     @app.after_request
     def security_headers(resp):
@@ -93,7 +110,30 @@ def create_app(test_config=None):
     register_commands(app)
     with app.app_context():
         db.create_all()
+        bootstrap_admin(app)
     return app
+
+
+def bootstrap_admin(app):
+    """First run on a host without a console: create the admin from
+    ADMIN_USERNAME and ADMIN_PASSWORD, but only while there are no teachers.
+    Delete ADMIN_PASSWORD from the host's settings once you've logged in."""
+    user = (os.environ.get("ADMIN_USERNAME") or "").strip().lower()
+    pw = os.environ.get("ADMIN_PASSWORD") or ""
+    if not user or not pw or Teacher.query.first():
+        return
+    if len(pw) < 10:
+        app.logger.error("ADMIN_PASSWORD must be at least 10 characters; admin not created.")
+        return
+    t = Teacher(username=user, display_name=os.environ.get("ADMIN_NAME") or user,
+                is_admin=True, subjects="*", must_change_password=True)
+    t.set_password(pw)
+    db.session.add(t)
+    try:
+        db.session.commit()
+        app.logger.warning("Created admin '%s'. Remove ADMIN_PASSWORD from the settings now.", user)
+    except Exception:  # another worker got there first
+        db.session.rollback()
 
 
 @login_manager.user_loader
@@ -127,7 +167,7 @@ def register_commands(app):
         if not uri.startswith("sqlite:///"):
             raise click.ClickException("Backups here only handle SQLite. Use your database host's backups.")
         src = Path(uri.removeprefix("sqlite:///"))
-        dest_dir = Path(app.instance_path) / "backups"
+        dest_dir = src.parent / "backups"  # same disk (volume) as the database
         dest_dir.mkdir(exist_ok=True)
         dest = dest_dir / f"keyterms-{datetime.now():%Y-%m-%d}.db"
         with sqlite3.connect(src) as s, sqlite3.connect(dest) as d:

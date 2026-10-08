@@ -3,7 +3,12 @@ import re
 import secrets
 from functools import wraps
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+import sqlite3
+from datetime import datetime
+from pathlib import Path
+
+from flask import (Blueprint, abort, current_app, flash, redirect, render_template, request,
+                   send_file, url_for)
 from flask_login import current_user, login_required
 
 from .. import banks
@@ -93,3 +98,22 @@ def update_teacher(tid):
             flash(f"{t.display_name} {'can log in again' if t.active else 'can no longer log in'}.", "ok")
     db.session.commit()
     return redirect(url_for("admin.index"))
+
+
+@bp.route("/backup")
+@admin_required
+def backup():
+    """Download a copy of the database (SQLite only). Keep it somewhere safe:
+    it has teacher accounts and class results (codes, no names)."""
+    uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
+    if not uri.startswith("sqlite:///"):
+        abort(404)
+    src = Path(uri.removeprefix("sqlite:///"))
+    dest_dir = src.parent / "backups"
+    dest_dir.mkdir(exist_ok=True)
+    dest = dest_dir / f"keyterms-{datetime.now():%Y-%m-%d-%H%M}.db"
+    with sqlite3.connect(src) as s, sqlite3.connect(dest) as d:
+        s.backup(d)
+    for old in sorted(dest_dir.glob("keyterms-*.db"))[:-14]:
+        old.unlink()
+    return send_file(dest, as_attachment=True, download_name=dest.name)

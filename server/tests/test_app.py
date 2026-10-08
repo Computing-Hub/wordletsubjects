@@ -389,3 +389,30 @@ def test_github_calls_in_order(app, monkeypatch):
     assert seen[1][2] == {"ref": "refs/heads/inbox/b1", "sha": "abc123"}
     assert base64.b64decode(seen[2][2]["content"]).decode() == "term,clue\n"
     assert seen[3][2]["head"] == "inbox/b1" and seen[3][2]["base"] == "main"
+
+
+def test_healthz(client):
+    assert client.get("/healthz").json == {"ok": True}
+
+
+def test_admin_backup_download(client):
+    login(client, "admin", "correct horse battery")
+    r = client.get("/admin/backup")
+    assert r.status_code == 200 and r.data[:15] == b"SQLite format 3"
+
+
+def test_first_run_admin_from_settings(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_DIR", str(tmp_path / "vol"))
+    monkeypatch.setenv("ADMIN_USERNAME", "Jose")
+    monkeypatch.setenv("ADMIN_PASSWORD", "first-run-password")
+    monkeypatch.setenv("RAILWAY_ENVIRONMENT", "production")
+    app = create_app({"TESTING": True})
+    assert (tmp_path / "vol" / "keyterms.db").exists()
+    with app.app_context():
+        t = Teacher.query.one()
+        assert t.username == "jose" and t.is_admin and t.must_change_password
+    create_app({"TESTING": True})  # second start: no duplicate
+    with app.app_context():
+        assert Teacher.query.count() == 1
+    r = app.test_client().get("/login", headers={"X-Forwarded-Proto": "https"})
+    assert r.status_code == 200

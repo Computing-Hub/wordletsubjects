@@ -12,55 +12,43 @@ The game keeps working offline and without this site. If `config.js` has no `res
 
 Teacher accounts (hashed passwords), drafts, classes, codes, and for each finished set: code, subject, topic, time, and for each term whether the word was solved and the question answered correctly. **No student names, emails or device details.** Results older than `RESULTS_KEEP_DAYS` (default 400) can be removed with `flask purge-results`.
 
-## Set up on PythonAnywhere (free account)
+## Set up on Railway
 
-The EU-hosted site (`eu.pythonanywhere.com`) keeps the data in Europe.
+Railway runs the site from this repo and redeploys it when `server/` changes on `main`. The settings it needs are in `server/railway.json`. Expect to pay a few dollars a month on the Hobby plan; check Railway's current pricing.
 
 1. **Make a GitHub token.** GitHub → Settings → Developer settings → Fine-grained tokens → Generate. Resource owner: **Computing-Hub**. Repository access: **only `wordletsubjects`**. Permissions: **Contents: read and write**, **Pull requests: read and write**. Set an expiry (a year) and a calendar reminder to renew it.
-2. **Get the code.** Open a Bash console on PythonAnywhere:
+2. **Create the service.** In Railway: New project → Deploy from GitHub repo → `Computing-Hub/wordletsubjects`. Then open the service's **Settings**:
+   - **Root directory:** `/server`
+   - **Config file path:** `/server/railway.json` (if Railway doesn't pick it up by itself)
+   - **Region:** an EU region, so the data stays in Europe
+3. **Add a volume.** Right-click the service (or Command palette → "Volume") → attach a volume with mount path **`/data`**. The database lives there. **Without a volume, everything is wiped on each redeploy.** The site finds the volume by itself through `RAILWAY_VOLUME_MOUNT_PATH`.
+4. **Add the variables** (service → Variables):
    ```
-   git clone https://github.com/Computing-Hub/wordletsubjects.git
-   cd wordletsubjects/server
-   mkvirtualenv keyterms --python=python3.12
-   pip install -r requirements.txt
+   SECRET_KEY=<long random string>
+   KEYTERMS_GITHUB_TOKEN=github_pat_...
+   ALLOWED_ORIGINS=https://computing-hub.github.io
+   ADMIN_USERNAME=jose
+   ADMIN_NAME=Head of CS
+   ADMIN_PASSWORD=<a temporary password, 10+ characters>
    ```
-3. **Create the web app.** Web tab → Add a new web app → Manual configuration → Python 3.12. Set:
-   - Source code: `/home/YOURNAME/wordletsubjects/server`
-   - Virtualenv: `/home/YOURNAME/.virtualenvs/keyterms`
-   - Force HTTPS: on
-4. **Edit the WSGI file** (link on the Web tab). Replace everything with:
-   ```python
-   import os, sys
-   sys.path.insert(0, "/home/YOURNAME/wordletsubjects/server")
-   os.environ["SECRET_KEY"] = "paste a long random string here"
-   os.environ["KEYTERMS_GITHUB_TOKEN"] = "github_pat_..."
-   os.environ["ALLOWED_ORIGINS"] = "https://computing-hub.github.io"
-   os.environ["GAME_URL"] = "https://computing-hub.github.io/wordletsubjects/"
-   from wsgi import app as application
-   ```
-   For the secret key, run `python -c "import secrets; print(secrets.token_hex(32))"` in a console.
-5. **Create your admin account** in the Bash console (same environment variables aren't needed for this):
-   ```
-   cd ~/wordletsubjects/server
-   workon keyterms
-   flask --app wsgi create-admin jose --name "Head of CS"
-   ```
-6. **Reload** the web app, open `https://YOURNAME.eu.pythonanywhere.com` and log in.
-7. **Switch the game on.** In the repo, set `resultsUrl` in `config.js` to that address (no slash at the end), run `python build_banks.py`, commit and push.
-8. **Nightly backup.** Tasks tab → daily task:
-   ```
-   cd ~/wordletsubjects/server && ~/.virtualenvs/keyterms/bin/flask --app wsgi backup
-   ```
-   Backups go to `server/instance/backups/`, keeping the last 14.
+   For the secret key, run `python -c "import secrets; print(secrets.token_hex(32))"`.
+5. **Give it an address.** Settings → Networking → Generate domain. You'll get something like `keyterms-production.up.railway.app`. (A custom domain such as `keyterms.coderra.je` can be added here too.)
+6. **Log in** with `ADMIN_USERNAME` and `ADMIN_PASSWORD`. It asks you to choose a new password. Then **delete `ADMIN_PASSWORD` from the variables**. It's only used when there are no accounts yet, so leaving it is harmless, but there's no reason to keep it.
+7. **Switch the game on.** In the repo, set `resultsUrl` in `config.js` to the Railway address (with `https://`, no slash at the end), run `python build_banks.py`, commit and push.
+8. **Backups.** Admin → **Download a backup** saves a copy of the database to your computer; do it at the end of each half term. Railway can also back up the volume on a schedule from the volume's settings, if your plan includes it.
 
-Free accounts must click "Run until 3 months from today" on the Web tab every few months, and only allow outbound requests to approved sites (api.github.com is on the list).
+The site runs one gunicorn process with several threads. Keep it at one process (and one replica): SQLite and the login lockout both assume a single process.
+
+## Set up on PythonAnywhere instead
+
+A free alternative. In a Bash console: clone the repo, `mkvirtualenv keyterms --python=python3.12`, `pip install -r server/requirements.txt`. Add a web app (manual configuration), point it at `server/` and the virtualenv, and in the WSGI file set the same variables as above with `os.environ[...]` before `from wsgi import app as application`. Create your admin with `flask --app wsgi create-admin jose`. Free accounts must be renewed on the Web tab every few months.
 
 ## Day to day
 
 - **Add teachers:** Admin → Add a teacher. Tick the subjects they may add terms to. You'll see a temporary password once; they choose their own on first login.
 - **Review terms:** Admin lists open pull requests. On GitHub, a green tick means the build accepted the file. Merge to publish; the Action rebuilds the site.
 - **Tidy the workbook:** now and then, pull, run `python merge_inbox.py` to move approved inbox files into `terms.xlsx`, then commit. Until then the build reads them from the inbox, so students already see them.
-- **Update the site code:** `git pull` in the console, then Reload on the Web tab.
+- **Update the site code:** merge to `main`; Railway redeploys when anything in `server/` changes. Pushes that only change word banks don't restart the site.
 
 ## Running it locally
 
@@ -84,7 +72,9 @@ Tests: `cd server && python -m pytest -q`
 | `GITHUB_REPO` | `Computing-Hub/wordletsubjects` | |
 | `GITHUB_BRANCH` | `main` | |
 | `ALLOWED_ORIGINS` | `https://computing-hub.github.io` | Where the game is hosted, comma-separated |
-| `DATABASE_URL` | SQLite in `server/instance/` | Any SQLAlchemy URL, e.g. Postgres |
+| `DATA_DIR` | the Railway volume, else `server/instance/` | Where the database, backups and outbox go |
+| `DATABASE_URL` | SQLite in `DATA_DIR` | Any SQLAlchemy URL (Postgres also needs a driver such as `psycopg2-binary`) |
+| `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_NAME` | empty | Creates the first admin, only while there are no accounts |
 | `GAME_URL` | the GitHub Pages address | Shown on the codes sheet |
 | `SCHOOL_NAME` | Le Rocquier School | |
 | `RESULTS_KEEP_DAYS` | 400 | Used by `flask purge-results` |

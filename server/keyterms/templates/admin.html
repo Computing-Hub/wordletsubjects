@@ -10,7 +10,8 @@
 {% endmacro %}
 {% block body %}
 <h1>Admin</h1>
-<p class="lead">Teacher accounts, and which subjects each one may add terms to. Everyone can create classes.</p>
+<div class="spread"><p class="lead" style="margin:0">Teacher accounts, and which subjects each one may add terms to. Everyone can create classes.</p>
+  <a class="btn small" href="{{ url_for('admin.backup') }}">Download a backup</a></div>
 
 {% if open_subs %}
 <h2>Waiting for review on GitHub</h2>
