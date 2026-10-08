@@ -1,0 +1,53 @@
+# Checks word-bank changes and rebuilds banks/banks.js.
+#  - Pull requests (e.g. terms sent in from the teacher site): run the checks only.
+#    A red cross on the PR means the build found a problem; the log says which row.
+#  - Pushes to main: rebuild banks.js and sw.js and commit them, so the live site
+#    updates without anyone running build_banks.py by hand.
+name: Build word banks
+
+on:
+  pull_request:
+    paths: ["banks/**", "images/**", "build_banks.py"]
+  push:
+    branches: [main]
+    paths: ["banks/terms.xlsx", "banks/inbox/**", "images/**", "build_banks.py"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-banks-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements.txt
+      - run: python build_banks.py --check
+
+  build:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements.txt
+      - run: python build_banks.py
+      - name: Commit rebuilt files
+        run: |
+          if git diff --quiet -- banks/banks.js sw.js; then
+            echo "banks.js is already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add banks/banks.js sw.js
+          git commit -m "Rebuild word banks"
+          git push

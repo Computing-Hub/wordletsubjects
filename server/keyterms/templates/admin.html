@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% macro subject_checks(selected, prefix) %}
+<div class="checks">
+  <label><input type="checkbox" name="subjects" value="*" {{ 'checked' if '*' in selected }}> <b>All subjects</b></label>
+  {% for sid, name, dept in subjects %}
+  <label><input type="checkbox" name="subjects" value="{{ sid }}" {{ 'checked' if sid in selected }}> {{ name }}</label>
+  {% endfor %}
+</div>
+{% endmacro %}
+{% block body %}
+<h1>Admin</h1>
+<p class="lead">Teacher accounts, and which subjects each one may add terms to. Everyone can create classes.</p>
+
+{% if open_subs %}
+<h2>Waiting for review on GitHub</h2>
+<div class="scroll"><table>
+  <thead><tr><th>Sent</th><th>By</th><th>Subject</th><th>Terms</th><th></th></tr></thead>
+  <tbody>{% for s in open_subs %}
+  <tr><td>{{ s.created_at.strftime('%d %b, %H:%M') }}</td><td>{{ s.teacher.display_name }}</td><td>{{ subject_name(s.subject_id) }}</td>
+    <td style="white-space:normal">{{ s.terms }}</td>
+    <td>{% if s.pr_url %}<a href="{{ s.pr_url }}" target="_blank" rel="noopener">Review PR #{{ s.pr_number }}</a>{% endif %}</td></tr>
+  {% endfor %}</tbody>
+</table></div>
+{% endif %}
+
+<h2>Teachers</h2>
+<div class="stack">
+{% for t in teachers %}
+<details class="panel {{ 'off' if not t.active }}">
+  <summary class="spread" style="cursor:pointer">
+    <span><b>{{ t.display_name }}</b> <span class="muted">· {{ t.username }}</span>
+      {% if t.is_admin %}<span class="tag">Admin</span>{% endif %}
+      {% if not t.active %}<span class="tag closed">Switched off</span>{% endif %}
+      {% if t.must_change_password %}<span class="tag open">Temporary password</span>{% endif %}</span>
+    <span class="muted small">{% if '*' in t.subject_ids() %}All subjects{% else %}{% for s in t.subject_ids()|sort %}{{ subject_name(s) }}{{ ', ' if not loop.last }}{% else %}No subjects{% endfor %}{% endif %}
+      {% if waiting.get(t.id) %} · {{ waiting[t.id] }} draft{{ 's' if waiting[t.id] != 1 }}{% endif %}</span>
+  </summary>
+  <form method="post" action="{{ url_for('admin.update_teacher', tid=t.id) }}" style="margin-top:12px">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {{ subject_checks(t.subject_ids(), t.id) }}
+    <div class="row" style="margin-top:10px">
+      {% if t.id != current_user.id %}<label class="row" style="margin:0;font-weight:500"><input type="checkbox" name="is_admin" value="1" {{ 'checked' if t.is_admin }}> Admin</label>{% endif %}
+      <button class="btn small primary" name="action" value="subjects">Save</button>
+      <button class="btn small" name="action" value="reset" onclick="return confirm('Give {{ t.display_name|e }} a new temporary password?')">Reset password</button>
+      {% if t.id != current_user.id %}<button class="btn small {{ 'danger' if t.active }}" name="action" value="toggle">{{ 'Switch off' if t.active else 'Switch on' }}</button>{% endif %}
+    </div>
+  </form>
+</details>
+{% endfor %}
+</div>
+
+<h2>Add a teacher</h2>
+<form method="post" action="{{ url_for('admin.new_teacher') }}" class="panel">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="grid2">
+    <div class="field"><label for="dn">Name <span class="hint">As shown on their submissions, e.g. Ms Jones</span></label>
+      <input type="text" id="dn" name="display_name" maxlength="80" required></div>
+    <div class="field"><label for="un">Username <span class="hint">e.g. sjones. Letters, numbers, dots or dashes.</span></label>
+      <input type="text" id="un" name="username" maxlength="40" autocapitalize="none" required></div>
+  </div>
+  <div class="field"><span style="display:block;font-weight:600;margin-bottom:4px">Subjects they can add terms to</span>
+    {{ subject_checks([], 'new') }}</div>
+  <div class="row"><label class="row" style="margin:0;font-weight:500"><input type="checkbox" name="is_admin" value="1"> Admin</label>
+    <button class="btn primary" type="submit">Create account</button></div>
+  <p class="small muted" style="margin:8px 0 0">You'll see a temporary password once. Pass it on; they choose their own when they first log in.</p>
+</form>
+{% endblock %}

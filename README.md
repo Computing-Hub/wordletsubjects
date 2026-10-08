@@ -10,7 +10,12 @@ Banks so far: exam command words (all subjects), English (language devices, lite
 - `banks/terms.xlsx` – **all word banks, one tab per subject. Edit this.**
 - `banks/banks.js` – generated from the workbook. Don't edit by hand.
 - `images/` – diagrams for picture questions (SVG or PNG)
-- `build_banks.py` – checks the workbook and builds `banks/banks.js`
+- `banks/inbox/` – terms sent in from the teacher site, one CSV per batch. The build reads them as extra rows.
+- `build_banks.py` – checks the workbook and inbox and builds `banks/banks.js` (`--check` to check only)
+- `merge_inbox.py` – moves approved inbox files into `terms.xlsx`
+- `config.js` – the teacher site's address, for class codes. Empty means class codes are off.
+- `server/` – the teacher site (adding terms, classes, progress). See `server/README.md`.
+- `.github/workflows/build-banks.yml` – checks pull requests and rebuilds `banks.js` after merges
 - `manifest.json`, `sw.js`, `icons/` – PWA files
 
 ## Editing the word banks
@@ -32,6 +37,14 @@ git add -A && git commit -m "Update word banks" && git push
 ```
 
 The build lists any problems by tab and row number and writes nothing until they're fixed. It also updates the version in `sw.js`, so installed copies pick up the changes.
+
+## Terms from other teachers
+Teachers add terms through the teacher site rather than editing the workbook. Each batch arrives as a pull request containing one CSV in `banks/inbox/<subject-id>/`. The GitHub Action runs `build_banks.py --check` on it, so a green tick means it will build. Merge it and the Action rebuilds `banks.js`; the site updates on its own.
+
+Now and then, pull and run `python merge_inbox.py` to move the inbox files into `terms.xlsx`, then commit. New topics are added to the Lists tab.
+
+## Class codes
+If `config.js` has a `resultsUrl`, the setup screen offers **Add class code**. A student types the code their teacher gave them (e.g. `9B-K7R`); after each set the code, subject, topic and right/wrong per term are sent to the teacher site. No names. Sets finished offline are queued and sent later. See `server/README.md`.
 
 ## Adding a subject
 Add a row to the **Subjects** tab (id, subject, department heading), create a tab named exactly like the subject with the same column headings, and add a column for its topics in the **Lists** tab. Then run the build.

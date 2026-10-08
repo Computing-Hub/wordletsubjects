@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Codes · {{ c.name }}{% endblock %}
+{% block body %}
+<p class="small noprint"><a href="{{ url_for('classes.dashboard', cid=c.id) }}">← {{ c.name }} progress</a></p>
+<div class="spread">
+  <h1>{{ c.name }}: codes</h1>
+  <div class="row noprint">
+    <button class="btn" type="button" id="editNames">Add names on this computer</button>
+    <button class="btn primary" type="button" onclick="window.print()">Print</button>
+  </div>
+</div>
+<p class="lead noprint">Print this, write each student's name next to a code, and hand the codes out. Names you type with
+  <b>Add names on this computer</b> are saved only in this browser, never on the server.</p>
+<p class="lead" style="display:none" id="printNote"></p>
+<div class="panel noprint" style="margin-bottom:16px">
+  <b>Tell students:</b> open Key Terms at <b>{{ config.GAME_URL }}</b>, tap <b>Class code</b> on the setup screen and type your code.
+  It's remembered on that phone or computer. Your score is sent to your teacher after each set of 10.
+</div>
+<div class="scroll"><table class="codes">
+  <thead><tr><th>Code</th><th>Name</th><th class="noprint"></th></tr></thead>
+  <tbody>
+  {% for sc in c.codes %}
+  <tr class="{{ 'off' if not sc.active }}">
+    <td class="code">{{ sc.code }}</td>
+    <td class="name" data-code="{{ sc.code }}"></td>
+    <td class="noprint">
+      <form class="inline" method="post" action="{{ url_for('classes.toggle_code', cid=c.id, code_id=sc.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn small {{ '' if sc.active else 'primary' }}" type="submit"
+          title="{{ 'Stops this code sending new results, e.g. if it was shared' if sc.active else '' }}">{{ 'Switch off' if sc.active else 'Switch on' }}</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<form method="post" action="{{ url_for('classes.add_codes', cid=c.id) }}" class="row noprint" style="margin-top:14px">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="n" style="margin:0">Add</label>
+  <input type="number" id="n" name="n" min="1" max="10" value="1" style="width:80px">
+  <button class="btn small" type="submit">more code(s)</button>
+  <span class="muted small">for a new student, or to replace a code that was shared.</span>
+</form>
+
+<dialog id="namesDlg" class="panel" style="max-width:520px;width:92vw">
+  <h3>Names on this computer</h3>
+  <p class="small muted">Saved in this browser only. Another computer, or another browser, will show codes.</p>
+  <div id="namesList" class="stack" style="max-height:55vh;overflow:auto;margin:10px 0"></div>
+  <div class="row"><button class="btn primary" type="button" id="saveNames">Save</button>
+    <button class="btn" type="button" id="closeNames">Cancel</button>
+    <button class="btn link" type="button" id="clearNames">Remove all names from this computer</button></div>
+</dialog>
+{% endblock %}
+{% block scripts %}<script>window.KT_CLASS = {{ c.id }};</script>
+<script src="{{ url_for('static', filename='names.js') }}"></script>{% endblock %}

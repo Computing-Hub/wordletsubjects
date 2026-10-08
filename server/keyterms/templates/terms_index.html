@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Add terms{% endblock %}
+{% block body %}
+<h1>Add terms</h1>
+<p class="lead">Add new terms, or more follow-up questions for terms already in the game. They collect here as drafts.
+  When you're ready, send a subject's drafts for review. Once approved they appear in the game, usually the same day.</p>
+
+{% if not github_ready %}
+<div class="flash error">GitHub isn't connected yet, so terms you send are kept on this server instead of going for review. The admin needs to set KEYTERMS_GITHUB_TOKEN.</div>
+{% endif %}
+
+<h2>Your subjects</h2>
+{% if subjects %}
+<div class="cards">
+  {% for sid, name, dept in subjects %}
+  <a class="card" href="{{ url_for('terms.new', subject=sid) }}"><b>{{ name }}</b><span>Add a term →</span></a>
+  {% endfor %}
+</div>
+{% else %}
+<p class="muted">You haven't been given any subjects to add terms to yet. Ask the admin.</p>
+{% endif %}
+
+<h2>Drafts</h2>
+{% if not by_subject %}
+<p class="muted">Nothing waiting. Terms you save appear here until you send them.</p>
+{% endif %}
+{% for sid, groups in by_subject.items() %}
+<section class="stack" style="margin-bottom:22px">
+  <div class="spread">
+    <h3>{{ subject_name(sid) }} <span class="muted small">· {{ groups|length }} entr{{ 'y' if groups|length == 1 else 'ies' }}</span></h3>
+    <a class="btn small" href="{{ url_for('terms.new', subject=sid) }}">Add another</a>
+  </div>
+  {% for g in groups %}
+  {% set first = g[0] %}
+  <div class="panel entry {{ '' if first.clue else 'extra' }}">
+    <div class="spread">
+      <div>
+        <b style="text-transform:uppercase;letter-spacing:.04em">{{ first.term }}</b>
+        {% if first.clue %}<span class="tag">{{ first.topic }}</span> <span class="tag">{{ 'Foundation' if first.tier == 'F' else 'Higher' }}</span>
+        {% else %}<span class="tag open">More questions</span>{% endif %}
+      </div>
+      <div class="row">
+        <a class="btn small" href="{{ url_for('terms.edit', entry_id=first.entry_id) }}">Edit</a>
+        <form class="inline" method="post" action="{{ url_for('terms.delete', entry_id=first.entry_id) }}"
+              onsubmit="return confirm('Delete {{ first.term|e }} from your drafts?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn small danger" type="submit">Delete</button>
+        </form>
+      </div>
+    </div>
+    {% if first.clue %}<p style="margin:6px 0 0">{{ first.clue }}</p>{% endif %}
+    <ol>{% for d in g %}<li>{{ d.question }} <span class="ans">{{ d.correct_answer }}</span></li>{% endfor %}</ol>
+    {% if first.notes %}<p class="muted small" style="margin:6px 0 0">Note: {{ first.notes }}</p>{% endif %}
+  </div>
+  {% endfor %}
+  <form method="post" action="{{ url_for('terms.send', sid=sid) }}" class="panel stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div><label for="m-{{ sid }}">Message for the reviewer <span class="hint">Optional. Also the place to point out a mistake in a term that's already in the game.</span></label>
+      <textarea id="m-{{ sid }}" name="message" maxlength="1000"></textarea></div>
+    <div><button class="btn primary" type="submit">Send {{ subject_name(sid) }} drafts for review</button></div>
+  </form>
+</section>
+{% endfor %}
+
+<h2>Sent</h2>
+{% if submissions %}
+<div class="scroll"><table>
+  <thead><tr><th>Sent</th><th>Subject</th><th>Terms</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for s in submissions %}
+  <tr>
+    <td>{{ s.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+    <td>{{ subject_name(s.subject_id) }}</td>
+    <td style="white-space:normal">{{ s.terms }}</td>
+    <td>
+      {% if s.status == 'merged' %}<span class="tag merged">In the game</span>
+      {% elif s.status == 'closed' %}<span class="tag closed">Not accepted</span>
+      {% elif s.status == 'local' %}<span class="tag">Saved on server</span>
+      {% else %}<span class="tag open">Waiting for review</span>{% endif %}
+      {% if s.pr_url and current_user.is_admin %} <a class="small" href="{{ s.pr_url }}" target="_blank" rel="noopener">PR #{{ s.pr_number }}</a>{% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+<p class="muted">Nothing sent yet.</p>
+{% endif %}
+{% endblock %}

@@ -1,11 +1,12 @@
 // The block between BUILD:START and BUILD:END is rewritten by build_banks.py.
 // BUILD:START
-const VERSION = "key-terms-ad934bf9f2";
+const VERSION = "key-terms-1501c9cb7c";
 const FILES = [
   "./",
   "./index.html",
   "./play.html",
   "./manifest.json",
+  "./config.js",
   "./banks/banks.js",
   "./icons/apple-touch-icon.png",
   "./icons/icon-192.png",

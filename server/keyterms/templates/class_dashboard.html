@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}{{ c.name }}{% endblock %}
+{% block body %}
+<p class="small"><a href="{{ url_for('classes.index') }}">← Classes</a></p>
+<div class="spread">
+  <h1>{{ c.name }}</h1>
+  <div class="row">
+    <a class="btn small" href="{{ url_for('classes.codes', cid=c.id) }}">Codes</a>
+    <button class="btn small" type="button" id="editNames">Names</button>
+    <a class="btn small" href="{{ url_for('classes.export', cid=c.id) }}">Download CSV</a>
+  </div>
+</div>
+<form method="get" class="row" style="margin:10px 0 18px">
+  <select name="subject" aria-label="Subject" onchange="this.form.submit()" style="width:auto">
+    <option value="">All subjects</option>
+    {% for id, name, dept in subjects %}<option value="{{ id }}" {{ 'selected' if id == sid }}>{{ name }}</option>{% endfor %}
+  </select>
+  <select name="period" aria-label="Period" onchange="this.form.submit()" style="width:auto">
+    {% for v, label in periods %}<option value="{{ v }}" {{ 'selected' if v == period }}>{{ label }}</option>{% endfor %}
+  </select>
+  <noscript><button class="btn small">Show</button></noscript>
+</form>
+
+<div class="stats">
+  <div class="stat"><b>{{ s.total_sets }}</b><span>sets finished</span></div>
+  <div class="stat"><b>{{ s.active_codes }}/{{ c.codes|length }}</b><span>students who played</span></div>
+  {% set played = s.rows|selectattr('overall', 'ne', none)|list %}
+  <div class="stat"><b>{{ ((played|sum(attribute='overall')) / played|length)|round|int if played else '–' }}{{ '%' if played }}</b><span>average score</span></div>
+</div>
+
+<h2>Sets per week</h2>
+{% set peak = s.weeks|map(attribute=1)|max or 1 %}
+<div class="weeks" aria-label="Sets finished each week, oldest first">
+  {% for wk, n in s.weeks %}<div><b>{{ n if n }}</b><i style="height:{{ (100 * n / peak)|round }}%"></i></div>{% endfor %}
+</div>
+<div class="weeks-x">{% for wk, n in s.weeks %}<span>{{ wk.strftime('%d %b') }}</span>{% endfor %}</div>
+
+<h2>Most-missed terms</h2>
+{% if s.missed %}
+<p class="muted small" style="margin-top:-4px">Terms the class got wrong most often{% if s.missed[0].n >= 3 %} (seen at least 3 times){% endif %}. Good candidates for a starter.</p>
+<div class="scroll"><table>
+  <thead><tr><th>Term</th>{% if not sid %}<th>Subject</th>{% endif %}<th>Topic</th><th class="num">Seen</th><th>Word not solved</th><th>Question wrong</th></tr></thead>
+  <tbody>
+  {% for m in s.missed %}
+  <tr><td class="who" style="text-transform:uppercase">{{ m.term }}</td>{% if not sid %}<td>{{ m.subject }}</td>{% endif %}<td>{{ m.topic }}</td>
+    <td class="num">{{ m.n }}</td>
+    <td><span class="bar" style="width:{{ (m.word * 0.8)|round }}px"></span> {{ m.word }}%</td>
+    <td><span class="bar" style="width:{{ (m.question * 0.8)|round }}px"></span> {{ m.question }}%</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+<p class="muted">Nothing yet. This fills in as students finish sets.</p>
+{% endif %}
+
+<h2>By student and {{ 'topic' if sid else 'subject' }}</h2>
+<div class="key"><span><i style="background:var(--hi)"></i>70% or more</span><span><i style="background:var(--mid)"></i>40–69%</span>
+  <span><i style="background:var(--lo)"></i>under 40%</span><span>Small number = terms answered. Score counts the word and the question.</span></div>
+<div class="scroll"><table>
+  <thead><tr><th>Student</th><th class="num">Sets</th><th class="num">Overall</th>
+    {% for col in s.cols %}<th class="num" style="white-space:normal;min-width:90px">{{ col }}</th>{% endfor %}<th>Last played</th></tr></thead>
+  <tbody>
+  {% macro cell(pct, n=None) %}{% if pct is none %}<span class="none">–</span>{% else %}<span class="cell {{ 'hi' if pct >= 70 else 'mid' if pct >= 40 else 'lo' }}">{{ pct }}%{% if n %}<sub>{{ n }}</sub>{% endif %}</span>{% endif %}{% endmacro %}
+  {% for r in s.rows %}
+  <tr class="{{ 'off' if not r.active and not r.sets }}">
+    <td class="who" data-code="{{ r.code }}">{{ r.code }}</td>
+    <td class="num">{{ r.sets or '' }}</td>
+    <td class="num">{{ cell(r.overall) }}</td>
+    {% for v in r.cells %}<td class="num">{% if v %}{{ cell(v[0], v[1]) }}{% else %}<span class="none">–</span>{% endif %}</td>{% endfor %}
+    <td class="muted small">{{ r.last.strftime('%d %b, %H:%M') if r.last else 'Not yet' }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+
+<details style="margin-top:36px">
+  <summary class="muted">Archive or delete this class</summary>
+  <div class="panel stack" style="margin-top:10px">
+    <form method="post" action="{{ url_for('classes.archive', cid=c.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn small" type="submit">{{ 'Restore class' if c.archived else 'Archive class' }}</button>
+      <span class="muted small">{{ 'Codes will work again.' if c.archived else 'Codes stop working; results are kept.' }}</span>
+    </form>
+    <form method="post" action="{{ url_for('classes.delete', cid=c.id) }}" class="row">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="text" name="confirm_name" placeholder="Type {{ c.name }} to confirm" style="max-width:260px" aria-label="Class name to confirm">
+      <button class="btn small danger" type="submit">Delete class and all its results</button>
+    </form>
+  </div>
+</details>
+
+<dialog id="namesDlg" class="panel" style="max-width:520px;width:92vw">
+  <h3>Names on this computer</h3>
+  <p class="small muted">Saved in this browser only, never on the server. Another computer will show codes.</p>
+  <div id="namesList" class="stack" style="max-height:55vh;overflow:auto;margin:10px 0"></div>
+  <div class="row"><button class="btn primary" type="button" id="saveNames">Save</button>
+    <button class="btn" type="button" id="closeNames">Cancel</button>
+    <button class="btn link" type="button" id="clearNames">Remove all names from this computer</button></div>
+</dialog>
+{% endblock %}
+{% block scripts %}<script>window.KT_CLASS = {{ c.id }};</script>
+<script src="{{ url_for('static', filename='names.js') }}"></script>{% endblock %}
